@@ -1,4 +1,6 @@
 package Main_game_file;
+import Game.Player;
+
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
@@ -33,11 +35,11 @@ public class DungeonWindow extends JFrame{
 
         // Instructions
         JLabel instructionsLabel = new JLabel("Click 'Start Game' to begin your adventure!");
-        instructionsLabel.setForeground(Color.YELLOW);
+        instructionsLabel.setForeground(Color.CYAN);
         instructionsLabel.setFont(new Font("Arial", Font.PLAIN, 14));
         instructionsLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
 
-        // Start button
+        // Start 
         JButton startButton = new JButton("Start Game");
         startButton.setAlignmentX(Component.CENTER_ALIGNMENT);
         startButton.setMaximumSize(new Dimension(150, 40));
@@ -46,7 +48,7 @@ public class DungeonWindow extends JFrame{
         startButton.setFocusPainted(false);
         startButton.setBorder(BorderFactory.createLineBorder(Color.WHITE, 2));
 
-        // Exit button
+        // Exit 
         JButton exitButton = new JButton("Exit");
         exitButton.setAlignmentX(Component.CENTER_ALIGNMENT);
         exitButton.setMaximumSize(new Dimension(150, 40));
@@ -55,7 +57,6 @@ public class DungeonWindow extends JFrame{
         exitButton.setFocusPainted(false);
         exitButton.setBorder(BorderFactory.createLineBorder(Color.WHITE, 2));
 
-        // Add components to panel
         welcomePanel.add(titleLabel);
         welcomePanel.add(Box.createRigidArea(new Dimension(0, 20)));
         welcomePanel.add(subtitleLabel);
@@ -66,12 +67,11 @@ public class DungeonWindow extends JFrame{
         welcomePanel.add(Box.createRigidArea(new Dimension(0, 10)));
         welcomePanel.add(exitButton);
 
-        // Button actions
         startButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                welcomeFrame.dispose(); // Close welcome screen
-                SwingUtilities.invokeLater(DungeonWindow::showPlayerSetupScreen); // Show player setup
+                welcomeFrame.dispose(); 
+                SwingUtilities.invokeLater(DungeonWindow::showPlayerSetupScreen); 
             }
         });
 
@@ -86,6 +86,7 @@ public class DungeonWindow extends JFrame{
         welcomeFrame.setVisible(true);
     }
 
+    
     public static void showPlayerSetupScreen() {
         JFrame setupFrame = new JFrame("Player Setup - Dungeon Adventure");
         setupFrame.setSize(500, 400);
@@ -173,7 +174,6 @@ public class DungeonWindow extends JFrame{
         buttonPanel.add(createButton);
         buttonPanel.add(backButton);
 
-        // Add components to panel
         setupPanel.add(titleLabel);
         setupPanel.add(Box.createRigidArea(new Dimension(0, 20)));
         setupPanel.add(instructionsLabel);
@@ -204,20 +204,31 @@ public class DungeonWindow extends JFrame{
                 }
                 
                 if (id.isEmpty()) {
-                    statusLabel.setText("Please enter your Player ID or click 'Create New'");
+                    statusLabel.setText("Please enter your Player ID or click 'Create New' and you'll get a player ID");
                     statusLabel.setForeground(Color.RED);
                     return;
                 }
                 
-                // Here you would typically validate the player ID against a database
-                // For now, we'll just proceed with the game
+                if (!Player.ifPlayerExist(id)) {
+                    statusLabel.setText("Player ID not found. Please enter your correct player ID or create new one");
+                    statusLabel.setForeground(Color.RED);
+                    return;
+                }
+
+
+                Player existingPlayer= Player.getPlayerByID(id);
+                if (existingPlayer==null) {
+                    statusLabel.setText("Error loading player date. why? because FUCK YOU");
+                    statusLabel.setForeground(Color.RED);
+                    return;
+                }
+
                 statusLabel.setText("Login successful! Starting game...");
                 statusLabel.setForeground(Color.GREEN);
                 
-                // Start the game with existing player data
                 SwingUtilities.invokeLater(() -> {
                     setupFrame.dispose();
-                    new DungeonWindow(name, id, 1, 1); // Assuming level 1, floor 1 for existing player
+                    new DungeonWindow(existingPlayer);
                 });
             }
         });
@@ -233,17 +244,31 @@ public class DungeonWindow extends JFrame{
                     return;
                 }
                 
-                // Generate a unique player ID
-                String newPlayerID = generatePlayerID();
+                String tempPlayerID =generatePlayerID();
+                while (Player.ifPlayerExist(tempPlayerID)) {
+                    tempPlayerID =generatePlayerID();
+                }
+                final String newPlayerID= tempPlayerID; // this is here because of this error: Local variable newPlayerID is required to be final or effectively final based on its usage
                 
-                statusLabel.setText("New account created! Player ID: " + newPlayerID);
-                statusLabel.setForeground(Color.GREEN);
                 
-                // Start the game with new player data
-                SwingUtilities.invokeLater(() -> {
-                    setupFrame.dispose();
-                    new DungeonWindow(name, newPlayerID, 1, 1); // New player starts at level 1, floor 1
-                });
+                statusLabel.setText("Creating new account............");
+                statusLabel.setForeground(Color.CYAN);
+                
+                Player newPlayer= new Player(name, newPlayerID, 1,1);
+
+                if (newPlayer!=null ) {
+                    statusLabel.setText("New account created! Player ID:" + newPlayerID);
+                    statusLabel.setForeground(Color.CYAN);
+
+                    SwingUtilities.invokeLater(() -> {
+                        setupFrame.dispose();
+                        new DungeonWindow(newPlayer);
+                    });
+                }
+                else{
+                    statusLabel.setText("Failed to create account. why? because FUCK YOU");
+                    statusLabel.setForeground(Color.RED);
+                }
             }
         });
 
@@ -266,39 +291,23 @@ public class DungeonWindow extends JFrame{
         return "PLR" + timestamp + random;
     }
 
-    // Store player data for use in the game
-    private static String playerName;
-    private static String playerID;
-    private static int playerLevel;
-    private static int currentFloor;
+    private static Player currentPlayer;
 
-    public DungeonWindow(){
-        this("DefaultPlayer", "DEFAULT001", 1, 1);
-    }
-
-    public DungeonWindow(String name, String id, int level, int floor){
-        playerName = name;
-        playerID = id;
-        playerLevel = level;
-        currentFloor = floor;
-        
-        setTitle("Dungeon Game - RPG Adventure - " + name);
+    public DungeonWindow(Player player){
+        currentPlayer =player;
+        setTitle("Dungeon Game - RPG Adventure - " + player.getName());
         setSize(1200, 800); 
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
         setResizable(false);
 
-        GamePanel panel = new GamePanel();
+        GamePanel panel= new GamePanel(player);
         add(panel);
-        panel.requestFocusInWindow(); 
+        panel.requestFocusInWindow();
         setVisible(true);
     }
 
-    // Getters for player data
-    public static String getPlayerName() { return playerName; }
-    public static String getPlayerID() { return playerID; }
-    public static int getPlayerLevel() { return playerLevel; }
-    public static int getCurrentFloor() { return currentFloor; }
-    
-    // Main method removed - now handled by Main.java
+    public static Player getCurrenPlayer(){ return currentPlayer; }
+
+
 }

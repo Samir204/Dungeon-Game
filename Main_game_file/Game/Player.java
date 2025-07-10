@@ -1,7 +1,12 @@
 package Game;
+
+import java.util.ArrayList;
+import java.util.List;
+
 public class Player {
     private String name;
     private String playerID;
+    public static List<Player> allPlayers= new ArrayList<>(); 
     private int playerLevel;
     private int currentFloorLevel;
     private int health;
@@ -19,17 +24,61 @@ public class Player {
         this.playerID = playerID;
         this.playerLevel = playerLevel;
         this.currentFloorLevel = currentFloorLevel;
-        this.maxHealth = 100 + (playerLevel * 20); // Health increases with level
+        this.maxHealth = 100 + (playerLevel * 20); 
         this.health = maxHealth;
-        this.maxEnergy = 50 + (playerLevel * 10); // Energy increases with level
+        this.maxEnergy = 50 + (playerLevel * 10); 
         this.energy = maxEnergy;
         this.experience = 0;
         this.experienceToNextLevel = playerLevel * 100;
         this.itemOnHands = new OnHandItem();
         this.inventoryItems = new Inventory(20 + (playerLevel * 5)); // Inventory size increases with level
         this.currentPower = null;
+
+        registerPlayer(this);
     }
 
+    /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    /// registering functions
+
+    public static boolean registerPlayer(Player player){
+        if (player!=null && !ifPlayerExist(player.getPlayerID())) {
+            allPlayers.add(player);
+            System.out.println("Player registered "+ player.getName() + " (ID: "+ player.getPlayerID() + " )");
+            return true;
+        }
+        return false;
+    }
+
+    public static boolean ifPlayerExist(String playerID){
+        return allPlayers.stream().anyMatch(player -> player.getPlayerID().equals(playerID)); 
+    }
+
+    public static Player getPlayerByID(String playerID){
+        return allPlayers.stream()
+                .filter(player -> player.getPlayerID().equals(playerID))
+                .findFirst()
+                .orElse(null);
+    }
+
+    public static List<Player> getAllPlayers(){
+        return new ArrayList<>(allPlayers);
+    }
+
+    public static List<String> getAllPlayersID(){
+        return allPlayers.stream()
+                .map(Player:: getPlayerID)
+                .collect(java.util.stream.Collectors.toList());
+    }
+
+    public static Player createNewPlayer(String name, String id, int level, int floor){
+        if (ifPlayerExist(id)) {
+            System.out.println("Player ID already exists: "+ id);
+            return null;
+        }
+        return new Player(name, id, level, floor);
+    }
+
+    /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     // Getters
     public String getName() {
@@ -157,6 +206,37 @@ public class Player {
         System.out.println("Health increased by " + healthIncrease);
         System.out.println("Energy increased by " + energyIncrease);
     }
+    ///////////////////
+    // public List<String> listPlayers(){
+    //     return allPlayersID;
+    // }
+
+    // public void addPlayer(String playerID){
+    //     if (playerID!=null && !(allPlayersID.contains(playerID))) {
+    //         allPlayersID.add(playerID);
+    //     }
+    //     else{
+    //         System.out.println("player ID is null or player already exist in data");
+    //     }
+    // }
+
+    // // if exist 
+    // // get player 
+    // public static boolean ifPlayerExist(String playerID){
+    //     return allPlayersID.contains(playerID);
+    // }
+
+    // public static List<String> getAllPlayerID(){
+    //     return new ArrayList<>(allPlayersID);
+    // }
+    // // public static String getPlayerName(String playID){
+    // //     if (playID!=null && allPlayersID.contains(playID)) {
+    // //         return
+    // //     }
+    // //     return null;
+    // // }
+
+    // ///////////////////
 
     // Item management
      public boolean equipItemToLeftHand(Items item) {
@@ -193,7 +273,6 @@ public class Player {
         }
     }
 
-    //use item
     public void useItem(Items item) {
         if (item instanceof Food) {
             Food food = (Food) item;
@@ -209,7 +288,6 @@ public class Player {
         }
     }
 
-    // use power
     public boolean usePower(){
         if (currentPower!=null && currentPower.canBeUsed()) {
             if (currentPower.usePower()) {

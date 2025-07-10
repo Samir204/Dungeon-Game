@@ -20,8 +20,14 @@ public class GamePanel extends JPanel {
     private boolean shieldActive = false; // Shield protection status
     private boolean gamePaused = false;
     private Timer gameTimer;
+    private JPanel pauseMenuPanel;
+    private boolean pauseMenuVisible = false;
     
-    public GamePanel() {
+    public GamePanel(Game.Player existingPlayer) {
+
+        this.gamePlayer=existingPlayer;
+        this.level=existingPlayer.getCurrentFloorLevel();
+
         setFocusable(true);
         requestFocusInWindow();
         setBackground(Color.BLACK);
@@ -206,7 +212,6 @@ public class GamePanel extends JPanel {
                         Game.Items leftHandItems = gamePlayer.getItemOnHands().seeItemOnLeft();
 
                         if (leftHandItems != null) {
-                            // Check if inventory has space
                             if (gamePlayer.getInventoryItems().getCurrentItemsCount() < 
                                 gamePlayer.getInventoryItems().getInventorySize()) {
                                 
@@ -238,7 +243,6 @@ public class GamePanel extends JPanel {
                 if (dir != null) {
                     player.move(dir, dungeon);
                     
-                    // Check if player reached the door
                     if (dungeon.isAtDoor(player.getX(), player.getY())) {
                         level++;
                         gamePlayer.setCurrentFloorLevel(level);
@@ -249,12 +253,10 @@ public class GamePanel extends JPanel {
                         initializeGame(); // Start new level
 
                     } else {
-                        // Update enemies only if shield is not active
                         if (!shieldActive) {
                             dungeon.updateEnemies();
                         }
                         
-                        // Check if player died (only if shield is not active)
                         if (!shieldActive && player.isDead()) {
                             gameOver = true;
                             // Music.stopMusicOrPause();
@@ -264,9 +266,9 @@ public class GamePanel extends JPanel {
                                 "Game Over", JOptionPane.YES_NO_OPTION);
                             
                             if (choice == JOptionPane.YES_OPTION) {
-                                resetGame(); // Reset game state and start new game
+                                resetGame(); 
                             } else {
-                                System.exit(0); // Exit the application
+                                System.exit(0); 
                             }
                         }
                     }
@@ -284,13 +286,132 @@ public class GamePanel extends JPanel {
                 gameTimer.stop();
             }
             // Music.stopMusicOrPause();
+            showPauseMenu();
         }
         else{
             if (gameTimer!=null) {
                 gameTimer.start();
             }
             Music.startMusic();
+            hidePauseMenu();
         }
+    }
+
+    ////////////////////////////////////////////////////////////////////////////
+    ////////////////////////////////////////////////////////////////////////////
+
+    public void showPauseMenu(){
+        if (pauseMenuPanel==null) {
+            createPauseMenu();
+        }
+        
+        pauseMenuVisible=true;
+        pauseMenuPanel.setVisible(true);
+        this.add(pauseMenuPanel);
+        this.setComponentZOrder(pauseMenuPanel, 0);
+        this.revalidate();
+        this.repaint();
+    }
+
+    public void hidePauseMenu(){
+        if (pauseMenuPanel!=null) {
+            pauseMenuVisible=false;
+            pauseMenuPanel.setVisible(false);
+            this.remove(pauseMenuPanel);
+            this.revalidate();
+            this.repaint();
+        }
+    }
+
+    private void createPauseMenu() {
+        pauseMenuPanel = new JPanel();
+        pauseMenuPanel.setOpaque(false);
+        pauseMenuPanel.setLayout(new BoxLayout(pauseMenuPanel, BoxLayout.Y_AXIS));
+        
+        pauseMenuPanel.setBounds(0, 0, getWidth(), getHeight());
+        
+        JPanel buttonContainer = new JPanel();
+        buttonContainer.setLayout(new BoxLayout(buttonContainer, BoxLayout.Y_AXIS));
+        buttonContainer.setOpaque(false);
+        buttonContainer.setAlignmentX(Component.CENTER_ALIGNMENT);
+        
+        buttonContainer.add(Box.createVerticalStrut(200));
+        
+        JButton resumeButton = createPauseButton("Resume");
+        JButton saveAndQuitButton = createPauseButton("Save and Quit");
+        JButton resetButton = createPauseButton("Reset Game");
+        
+        // adding button action
+        resumeButton.addActionListener(e -> {
+            togglePause(); // this will resu,e the game 
+        });
+
+        saveAndQuitButton.addActionListener(e -> {
+            gamePlayer.setCurrentFloorLevel(level);
+            gameOver = true;
+            hidePauseMenu();
+
+            JOptionPane.showMessageDialog(GamePanel.this, 
+                "Game saved! Level: " + level + "\nReturning to main menu...");
+
+            // here in a normal game, you would typically return to main menu
+            // however, because i didnt make a main menu, itll just quite and fuck off
+            System.exit(0);
+        });
+
+        resetButton.addActionListener(e -> {
+            int choice = JOptionPane.showConfirmDialog(GamePanel.this,
+                "Are you sure you want to reset the game?\nAll progress will be lost!",
+                "Reset Game", JOptionPane.YES_NO_OPTION);
+
+            if (choice == JOptionPane.YES_OPTION) {
+                hidePauseMenu();
+                resetGame();
+            }
+        });
+
+        buttonContainer.add(resumeButton);
+        buttonContainer.add(Box.createVerticalStrut(20));
+        buttonContainer.add(saveAndQuitButton);
+        buttonContainer.add(Box.createVerticalStrut(20));
+        buttonContainer.add(resetButton);
+
+        pauseMenuPanel.add(buttonContainer);
+    }
+
+    private JButton createPauseButton(String text) {
+        JButton button = new JButton(text);
+        button.setPreferredSize(new Dimension(200, 50));
+        button.setMaximumSize(new Dimension(200, 50));
+        button.setMinimumSize(new Dimension(200, 50));
+        button.setAlignmentX(Component.CENTER_ALIGNMENT);
+        button.setBackground(Color.DARK_GRAY);
+        button.setForeground(Color.WHITE);
+        button.setFocusPainted(false);
+        button.setBorder(BorderFactory.createLineBorder(Color.WHITE, 2));
+        button.setFont(new Font("Arial", Font.BOLD, 16));
+
+        button.addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override
+            public void mouseEntered(java.awt.event.MouseEvent e) {
+                button.setBackground(Color.GRAY);
+            }
+
+            @Override
+            public void mouseExited(java.awt.event.MouseEvent e) {
+                button.setBackground(Color.DARK_GRAY);
+            }
+        });
+
+        return button;
+    }
+
+
+
+    ////////////////////////////////////////////////////////////////////////////
+    ////////////////////////////////////////////////////////////////////////////
+    public GamePanel(){
+        this(null);
     }
     
     
@@ -299,8 +420,8 @@ public class GamePanel extends JPanel {
         dungeon = new DungeonMap(40, 20, player);
         gameOver = false;
         
-        // Initialize RPG player if not exists
-        if (gamePlayer == null) {
+
+        if (gamePlayer == null) { // creating this if the player not existing
             gamePlayer = new Game.Player("Hero", "PLAYER001", 1, level);
             
             // Give starting items
@@ -311,6 +432,15 @@ public class GamePanel extends JPanel {
             gamePlayer.setCurrentPower(new Power("Heal", "Restoration", 0, 30, 0, 5, 1));
         } else {
             gamePlayer.setCurrentFloorLevel(level);
+
+            if (gamePlayer.getInventoryItems().getCurrentItemsCount()==0) {
+                // adding this because im testing shit and dont want to waist time for no fucking reason 
+                gamePlayer.getInventoryItems().addItem(new Food("Bread", "FOOD001", 3, 20, 10));
+                gamePlayer.getInventoryItems().addItem(new Weapon("Sword", "WEAPON001", 1, 15));
+                gamePlayer.getInventoryItems().addItem(new Shield("Shield", "SHIELD001", 1, 10, 100));
+                gamePlayer.getInventoryItems().addItem(new BowAndarow("Bow", "BOW001", 1, 12, 100));
+                gamePlayer.setCurrentPower(new Power("Heal", "Restoration", 0, 30, 0, 5, 1));
+            }
         }
         
         int enemyCount = level + 1;
@@ -558,7 +688,7 @@ public class GamePanel extends JPanel {
 
     private void resetGame() {
         level = 1;
-        gamePlayer = null; 
+        gamePlayer.setCurrentFloorLevel(level);
         shieldActive = false;
         gameOver=false; 
         initializeGame();
@@ -629,16 +759,16 @@ public class GamePanel extends JPanel {
         }
 
         if (gamePaused) {
-            // Draw pause overlay
-            g.setColor(new Color(0, 0, 0, 128));
+            g.setColor(new Color(0, 0, 0, 150)); //sem-transparent overlay
             g.fillRect(0, 0, getWidth(), getHeight());
+            
             g.setColor(Color.WHITE);
             g.setFont(new Font("Arial", Font.BOLD, 48));
-            String pauseText = "PAUSED";
+            String pauseText = "< PAUSED >";
             int textWidth = g.getFontMetrics().stringWidth(pauseText);
-            g.drawString(pauseText, getWidth()/2 - textWidth/2, getHeight()/2);
+            g.drawString(pauseText, getWidth()/2 - textWidth/2, getHeight()/2 - 270);
         }
-        
+
         if (gameOver) {
             g.setColor(Color.RED);
             g.setFont(new Font("Monospaced", Font.BOLD, 20));
