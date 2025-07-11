@@ -21,7 +21,11 @@ public class GamePanel extends JPanel {
     private boolean gamePaused = false;
     private Timer gameTimer;
     private JPanel pauseMenuPanel;
-    private boolean pauseMenuVisible = false;
+    // private boolean pauseMenuVisible = false;
+    // for boss fight: 
+    private BossEnemy boss= null;
+    private boolean bossLevel=false;
+    private boolean bossFightStarted=false;
     
     public GamePanel(Game.Player existingPlayer) {
 
@@ -246,13 +250,42 @@ public class GamePanel extends JPanel {
                     if (dungeon.isAtDoor(player.getX(), player.getY())) {
                         level++;
                         gamePlayer.setCurrentFloorLevel(level);
-                        gamePlayer.gainExperience(50 * level); // More XP for higher levels
+                        gamePlayer.gainExperience(50 * level);
                         
                         JOptionPane.showMessageDialog(GamePanel.this, 
                             "Level " + level + " - You found the door! +XP");
                         initializeGame(); // Start new level
 
                     } else {
+                            // boss attacks
+                            if (bossLevel && boss != null && !shieldActive) {
+                                if (boss.isAttacking()) {
+                                    int damage = 25; // Boss does significant damage
+                                    gamePlayer.takeDamage(damage);
+                                    // JOptionPane.showMessageDialog(this, 
+                                    //     "Boss attacks you for " + damage + " damage! Health: " + 
+                                    //     gamePlayer.getHealth() + "/" + gamePlayer.getMaxHealth());
+
+                                    if (gamePlayer.getHealth() <= 0) {
+                                        gameOver = true;
+                                        // JOptionPane.showMessageDialog(this, 
+                                        //     "The boss has defeated you! Game Over!");
+
+                                        // int choice = JOptionPane.showConfirmDialog(this, 
+                                        //     "Do you want to try again?", 
+                                        //     "Boss Fight Failed", JOptionPane.YES_NO_OPTION);
+
+                                        // if (choice == JOptionPane.YES_OPTION) {
+                                        //     resetGame();
+                                        // } else {
+                                        //     System.exit(0);
+                                        // }
+                                    }
+                                }
+                            }
+
+
+
                         if (!shieldActive) {
                             dungeon.updateEnemies();
                         }
@@ -305,7 +338,7 @@ public class GamePanel extends JPanel {
             createPauseMenu();
         }
         
-        pauseMenuVisible=true;
+        // pauseMenuVisible=true;
         pauseMenuPanel.setVisible(true);
         this.add(pauseMenuPanel);
         this.setComponentZOrder(pauseMenuPanel, 0);
@@ -315,7 +348,7 @@ public class GamePanel extends JPanel {
 
     public void hidePauseMenu(){
         if (pauseMenuPanel!=null) {
-            pauseMenuVisible=false;
+            // pauseMenuVisible=false;
             pauseMenuPanel.setVisible(false);
             this.remove(pauseMenuPanel);
             this.revalidate();
@@ -419,18 +452,27 @@ public class GamePanel extends JPanel {
         player = new Player(2, 2);
         dungeon = new DungeonMap(40, 20, player);
         gameOver = false;
-        
+        if (level==20) {
+            bossFight();
+            return;
+        }
+        bossLevel=false;
+        bossFightStarted=false;
+        boss=null;
 
-        if (gamePlayer == null) { // creating this if the player not existing
-            gamePlayer = new Game.Player("Hero", "PLAYER001", 1, level);
+        // if (gamePlayer == null) { // creating this if the player not existing
+        //     gamePlayer = new Game.Player("Hero", "PLAYER001", 1, level);
             
-            // Give starting items
-            gamePlayer.getInventoryItems().addItem(new Food("Bread", "FOOD001", 3, 20, 10));
-            gamePlayer.getInventoryItems().addItem(new Weapon("Sword", "WEAPON001", 1, 15));
-            gamePlayer.getInventoryItems().addItem(new Shield("Shield", "SHIELD001", 1, 10, 100));
-            gamePlayer.getInventoryItems().addItem(new BowAndarow("Bow", "BOW001", 1, 12, 100));
-            gamePlayer.setCurrentPower(new Power("Heal", "Restoration", 0, 30, 0, 5, 1));
-        } else {
+        //     // Give starting items
+        //     gamePlayer.getInventoryItems().addItem(new Food("Bread", "FOOD001", 3, 20, 10));
+        //     gamePlayer.getInventoryItems().addItem(new Weapon("Sword", "WEAPON001", 1, 15));
+        //     gamePlayer.getInventoryItems().addItem(new Shield("Shield", "SHIELD001", 1, 10, 100));
+        //     gamePlayer.getInventoryItems().addItem(new BowAndarow("Bow", "BOW001", 1, 12, 100));
+        //     gamePlayer.setCurrentPower(new Power("Heal", "Restoration", 0, 30, 0, 5, 1));
+        // } else {
+
+        // ^^^^^^ tester
+
             gamePlayer.setCurrentFloorLevel(level);
 
             if (gamePlayer.getInventoryItems().getCurrentItemsCount()==0) {
@@ -441,7 +483,7 @@ public class GamePanel extends JPanel {
                 gamePlayer.getInventoryItems().addItem(new BowAndarow("Bow", "BOW001", 1, 12, 100));
                 gamePlayer.setCurrentPower(new Power("Heal", "Restoration", 0, 30, 0, 5, 1));
             }
-        }
+        
         
         int enemyCount = level + 1;
         for (int i = 0; i < enemyCount; i++) {
@@ -561,7 +603,42 @@ public class GamePanel extends JPanel {
         }
     }
 
+    /////////////////////////////////////////
+    /////////////////////////////////////////
+    public void bossFight(){
+        if (level==20 && !bossLevel) {
+            bossLevel=true;
+            bossFightStarted=true;
+        }
+        // dungeon.clearAllEnemies(); to do later if too deficult
 
+        boss= new BossEnemy(0,0);
+        placeEnemyInWalkablePosition(dungeon, boss);
+        JOptionPane.showMessageDialog(this,
+            "BOSS FIGHT\n"
+            + "a fat sack of shit, AKA the boss appeared\n"
+            + "good luck bro\n"
+            + "here take this for good luck: \n"
+            + " '†' \n");
+
+        floorItems.clear();
+        placeSpecialBossItems();
+    }
+    private void placeSpecialBossItems(){
+        // Random random= new Random();
+        Game.Items powerfulSword = new Weapon("Boss Slayer Sword", "BOSS_WEAPON", 1, 25);
+        placeItemOnFloor(powerfulSword);
+
+        for (int i = 0; i < 3; i++) {
+            Game.Items healingPotion = new Food("Greater Healing Potion", "BOSS_FOOD" + i, 1, 50, 30);
+            placeItemOnFloor(healingPotion);
+        }
+        Game.Items powerfulBow = new BowAndarow("Boss Slayer Bow", "BOSS_BOW", 1, 15, 100);
+        placeItemOnFloor(powerfulBow);
+    }
+
+    /////////////////////////////////////////
+    /////////////////////////////////////////
 
     
     //////////////////////////////////////
@@ -601,10 +678,25 @@ public class GamePanel extends JPanel {
             int checkX = playerX + dx[i];
             int checkY = playerY + dy[i];
             
-            // Check if there's an enemy at this position
+            // check if there's an enemy at this position
             Enemy enemy = dungeon.getEnemyAt(checkX, checkY);
             if (enemy != null) {
-                // For melee, prioritize 'E' type enemies (ChaserEnemy)
+                if (enemy instanceof BossEnemy && bossLevel) {
+                    BossEnemy bossEnemy = (BossEnemy) enemy;
+                    bossEnemy.takeDamage(20); 
+                    
+                    if (bossEnemy.isDead()) {
+                        dungeon.removeEnemy(enemy);
+                        boss = null;
+                        showBossVictory();
+                        return true;
+                    } else {
+                        JOptionPane.showMessageDialog(this, 
+                            "Boss hit with sword! Remaining health: " + bossEnemy.getHealth());
+                        return false; // hit but not killed
+                    }
+                }
+                // For melee, prioritize E type enemies (ChaserEnemy)
                 if (enemy instanceof ChaserEnemy) {
                     dungeon.removeEnemy(enemy);
                     return true;
@@ -612,7 +704,7 @@ public class GamePanel extends JPanel {
             }
         }
         
-        // If no ChaserEnemy found, attack any adjacent enemy
+        // if no S found, attack any adjacent enemy
         for (int i = 0; i < 8; i++) {
             int checkX = playerX + dx[i];
             int checkY = playerY + dy[i];
@@ -634,20 +726,34 @@ public class GamePanel extends JPanel {
         // Check all positions within 2 block radius
         for (int dx = -2; dx <= 2; dx++) {
             for (int dy = -2; dy <= 2; dy++) {
-                // Skip the player's position
                 if (dx == 0 && dy == 0) continue;
-                
-                // Calculate distance (Manhattan distance for simplicity)
+
                 int distance = Math.abs(dx) + Math.abs(dy);
-                if (distance > 2) continue; // Only within 2 blocks
-                
+                if (distance > 2) continue;
+
                 int checkX = playerX + dx;
                 int checkY = playerY + dy;
-                
-                // Check if there's an enemy at this position
+
                 Enemy enemy = dungeon.getEnemyAt(checkX, checkY);
                 if (enemy != null) {
-                    // For ranged, prioritize 'S' type enemies (RandomEnemy)
+                    // Check if it's the boss
+                    if (enemy instanceof BossEnemy && bossLevel) {
+                        BossEnemy bossEnemy = (BossEnemy) enemy;
+                        bossEnemy.takeDamage(10); // Bow does 10 damage (10 hits to kill)
+
+                        if (bossEnemy.isDead()) {
+                            dungeon.removeEnemy(enemy);
+                            boss = null;
+                            showBossVictory();
+                            return true;
+                        } else {
+                            JOptionPane.showMessageDialog(this, 
+                                "Boss hit with bow! Remaining health: " + bossEnemy.getHealth());
+                            return false; // Boss hit but not killed
+                        }
+                    }
+
+                    // Regular enemy logic
                     if (enemy instanceof RandomEnemy) {
                         dungeon.removeEnemy(enemy);
                         return true;
@@ -655,18 +761,18 @@ public class GamePanel extends JPanel {
                 }
             }
         }
-        
-        // If no RandomEnemy found, attack any enemy within range
+
+        // If no priority enemy found, attack any enemy within range
         for (int dx = -2; dx <= 2; dx++) {
             for (int dy = -2; dy <= 2; dy++) {
                 if (dx == 0 && dy == 0) continue;
-                
+
                 int distance = Math.abs(dx) + Math.abs(dy);
                 if (distance > 2) continue;
-                
+
                 int checkX = playerX + dx;
                 int checkY = playerY + dy;
-                
+
                 Enemy enemy = dungeon.getEnemyAt(checkX, checkY);
                 if (enemy != null) {
                     dungeon.removeEnemy(enemy);
@@ -674,8 +780,31 @@ public class GamePanel extends JPanel {
                 }
             }
         }
-        
+
         return false;
+    }
+
+    private void showBossVictory() {
+        gameOver = true;
+        JOptionPane.showMessageDialog(this, 
+            "CONGRATULATIONS\n" +
+            "You have defeated the boss!\n" +
+            "you completed all 20 levels!\n" +
+            "do you fee proude of your self?? " +
+            "Final Statistics:\n" +
+            "Level: " + gamePlayer.getPlayerLevel() + "\n" +
+            "Experience: " + gamePlayer.getExperience() + "\n" +
+            "Health: " + gamePlayer.getHealth() + "/" + gamePlayer.getMaxHealth());
+        
+        int choice = JOptionPane.showConfirmDialog(this, 
+            "would you like to play again?", 
+            "Victory!", JOptionPane.YES_NO_OPTION);
+        
+        if (choice == JOptionPane.YES_OPTION) {
+            resetGame();
+        } else {
+            System.exit(0);
+        }
     }
 
     //////////////////
@@ -690,9 +819,11 @@ public class GamePanel extends JPanel {
         level = 1;
         gamePlayer.setCurrentFloorLevel(level);
         shieldActive = false;
-        gameOver=false; 
+        gameOver = false;
+        bossLevel = false;
+        bossFightStarted = false;
+        boss = null;
         initializeGame();
-        // Music.startMusic();
         repaint();
     }
     
@@ -838,6 +969,39 @@ public class GamePanel extends JPanel {
         if (shieldActive) {
             g.setColor(Color.CYAN);
             g.drawString("SHIELD ACTIVE - PROTECTED!", x, y);
+        }
+
+        if (bossLevel && boss != null) {
+            g.setColor(Color.RED);
+            g.setFont(new Font("Monospaced", Font.BOLD, 14));
+            
+            int bossInfoY = 300;
+            g.drawString("=== BOSS HEALTH ===", 10, bossInfoY);
+            
+            // boss health bar
+            int barWidth = 200;
+            int barHeight = 20;
+            int barX = 10;
+            int barY = bossInfoY + 15;
+            
+            // background
+            g.setColor(Color.DARK_GRAY);
+            g.fillRect(barX, barY, barWidth, barHeight);
+            
+            // health bar
+            g.setColor(Color.RED);
+            int healthWidth = (int) ((double) boss.getHealth() / boss.getMaxHealth() * barWidth);
+            g.fillRect(barX, barY, healthWidth, barHeight);
+            
+            g.setColor(Color.WHITE);
+            g.drawRect(barX, barY, barWidth, barHeight);
+            
+            // health text
+            g.setColor(Color.WHITE);
+            g.setFont(new Font("Monospaced", Font.BOLD, 12));
+            String healthText = boss.getHealth() + "/" + boss.getMaxHealth();
+            int textWidth = g.getFontMetrics().stringWidth(healthText);
+            g.drawString(healthText, barX + (barWidth - textWidth) / 2, barY + 14);
         }
     }
     

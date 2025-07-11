@@ -15,7 +15,7 @@ public class DungeonWindow extends JFrame{
         welcomeFrame.setLocationRelativeTo(null);
         welcomeFrame.setResizable(false);
 
-        // Create welcome panel
+        // welcome panel
         JPanel welcomePanel = new JPanel();
         welcomePanel.setLayout(new BoxLayout(welcomePanel, BoxLayout.Y_AXIS));
         welcomePanel.setBackground(Color.BLACK);
@@ -251,24 +251,19 @@ public class DungeonWindow extends JFrame{
                 final String newPlayerID= tempPlayerID; // this is here because of this error: Local variable newPlayerID is required to be final or effectively final based on its usage
                 
                 
-                statusLabel.setText("Creating new account............");
+                statusLabel.setText("Creating new account...");
                 statusLabel.setForeground(Color.CYAN);
                 
                 Player newPlayer= new Player(name, newPlayerID, 1,1);
 
                 if (newPlayer!=null ) {
-                    statusLabel.setText("New account created! Player ID:" + newPlayerID);
-                    statusLabel.setForeground(Color.CYAN);
-
-                    SwingUtilities.invokeLater(() -> {
-                        setupFrame.dispose();
-                        new DungeonWindow(newPlayer);
-                    });
+                    setupFrame.dispose();
+                    showNewPlayerInfoScreen(newPlayer);
                 }
-                else{
-                    statusLabel.setText("Failed to create account. why? because FUCK YOU");
-                    statusLabel.setForeground(Color.RED);
-                }
+                // else{
+                //     statusLabel.setText("Failed to create account. why? because FUCK YOU");
+                //     statusLabel.setForeground(Color.RED);
+                // }
             }
         });
 
@@ -285,7 +280,6 @@ public class DungeonWindow extends JFrame{
     }
 
     private static String generatePlayerID() {
-        // Generate a unique player ID (simple implementation)
         long timestamp = System.currentTimeMillis();
         int random = (int) (Math.random() * 1000);
         return "PLR" + timestamp + random;
@@ -310,4 +304,97 @@ public class DungeonWindow extends JFrame{
     public static Player getCurrenPlayer(){ return currentPlayer; }
 
 
+    /////////////////////
+    public static void showNewPlayerInfoScreen(Player player){
+        JFrame newPlayerWindow = new JFrame("New Player INFO");
+        newPlayerWindow.setSize(600, 400);
+        newPlayerWindow.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        newPlayerWindow.setLocationRelativeTo(null);
+        newPlayerWindow.setResizable(false);
+
+        // panel
+        JPanel panel = new JPanel();
+        panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
+        panel.setBackground(Color.BLACK);
+        panel.setBorder(BorderFactory.createEmptyBorder(50, 50, 50, 50));
+
+
+        JLabel title = new JLabel("NEW PLAYER CREATED!");
+        title.setForeground(Color.WHITE);
+        title.setFont(new Font("Arial", Font.BOLD, 28));
+        title.setAlignmentX(Component.CENTER_ALIGNMENT);
+
+        // message
+        JLabel successMsg = new JLabel("Your account has been successfully created!");
+        successMsg.setForeground(Color.GREEN);
+        successMsg.setFont(new Font("Arial", Font.PLAIN, 16));
+        successMsg.setAlignmentX(Component.CENTER_ALIGNMENT);
+
+
+        // player name
+        JLabel name = new JLabel("You player name is: "+ player.getName());
+        name.setForeground(Color.CYAN);
+        name.setFont(new Font("Arial", Font.PLAIN, 16));
+        name.setAlignmentX(Component.CENTER_ALIGNMENT);
+
+
+        // player ID
+        JLabel playerID = new JLabel("You player ID is: "+ player.getPlayerID());
+        playerID.setForeground(Color.BLUE);
+        playerID.setFont(new Font("Arial", Font.PLAIN, 16));
+        playerID.setAlignmentX(Component.CENTER_ALIGNMENT);
+
+        // note1
+        JLabel note1 = new JLabel("Please save your Player ID, because if you dont");
+        note1.setForeground(Color.RED);
+        note1.setFont(new Font("Arial", Font.ITALIC, 14));
+        note1.setAlignmentX(Component.CENTER_ALIGNMENT);
+
+        // note2
+        JLabel note2 = new JLabel("well you better enjoy the remaining 24 houres");
+        note2.setForeground(Color.RED);
+        note2.setFont(new Font("Arial", Font.ITALIC, 14));
+        note2.setAlignmentX(Component.CENTER_ALIGNMENT);
+
+        // Start 
+        JButton startButton = new JButton("Start Game");
+        startButton.setAlignmentX(Component.CENTER_ALIGNMENT);
+        startButton.setMaximumSize(new Dimension(150, 40));
+        startButton.setBackground(Color.DARK_GRAY);
+        startButton.setForeground(Color.WHITE);
+        startButton.setFocusPainted(false);
+        startButton.setBorder(BorderFactory.createLineBorder(Color.WHITE, 2));
+
+        panel.add(title);
+        panel.add(Box.createRigidArea(new Dimension(0, 20)));
+        panel.add(successMsg);
+        panel.add(Box.createRigidArea(new Dimension(0, 30)));
+        panel.add(name);
+        panel.add(Box.createRigidArea(new Dimension(0, 10)));
+        panel.add(playerID);
+        panel.add(Box.createRigidArea(new Dimension(0, 20)));
+        panel.add(note1);
+        panel.add(Box.createRigidArea(new Dimension(0, 30)));
+        panel.add(note2);
+        panel.add(Box.createRigidArea(new Dimension(0, 30)));
+        panel.add(startButton);
+
+        startButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                newPlayerWindow.dispose(); 
+                // start 
+                SwingUtilities.invokeLater(() -> {
+                    new DungeonWindow(player);
+                });
+            }
+        });
+
+        newPlayerWindow.add(panel);
+        newPlayerWindow.setVisible(true);
+    }
+
 }
+
+
+//present player with his info after creatig new account

@@ -1,6 +1,7 @@
 package Main_game_file;
 // import java.util.*;
 
+
 // === Direction Enum ===
 enum Direction {
     UP(-1, 0), DOWN(1, 0), LEFT(0, -1), RIGHT(0, 1);
@@ -77,7 +78,7 @@ class ChaserEnemy extends Enemy {
         int dx = Integer.compare(player.getX(), x);
         int dy = Integer.compare(player.getY(), y);
         
-        // Try to move towards player
+        // move towards player
         int nx = x + dx;
         int ny = y + dy;
         if (dungeon.isWalkable(nx, ny) && !dungeon.hasEnemyAt(nx, ny)) {
@@ -85,7 +86,7 @@ class ChaserEnemy extends Enemy {
             return;
         }
         
-        // If can't move directly towards player, try alternative moves
+        // if cant move directly towards player try alternative moves
         Direction[] dirs = {Direction.UP, Direction.DOWN, Direction.LEFT, Direction.RIGHT};
         for (Direction dir : dirs) {
             nx = x + dir.dx;
@@ -98,4 +99,82 @@ class ChaserEnemy extends Enemy {
     }
 }
 
+class BossEnemy extends Enemy {
+    private int health;
+    private int maxHealth;
+    private int attackCooldown;
+    private boolean isAttacking; // true if attacking, else false 
+
+    public BossEnemy(int x, int y){
+        super(x, y);
+        this.maxHealth=100;
+        this.health=maxHealth;
+        this.attackCooldown=0;
+        this.isAttacking=false;
+    }
+    public char getSymbol(){ return 'B'; }
+    public int getHealth(){ return health; }
+    public int getMaxHealth(){ return maxHealth; }
+    public boolean isAttacking(){ return isAttacking; }
+
+    public void takeDamage(int damage){
+        health-=damage;
+        if (health<0) {
+            health=0;
+        }
+    }
+    public boolean isDead(){
+        return health<=0;
+    }
+    public void takeTurn(Player player, DungeonMap dungeon){
+        if (attackCooldown>0) {
+            attackCooldown--;
+        }
+        int playerX= player.getX();
+        int playerY= player.getY();
+        int distance= Math.abs(playerX -x)+ Math.abs(playerY-y);
+        if (distance<=1 && attackCooldown==0) {
+            isAttacking=true;
+            attackCooldown=3;
+            return;
+        }
+        else{
+            isAttacking=false;
+        }
+        int dx= Integer.compare(playerX, x);
+        int dy= Integer.compare(playerY, y);
+
+        int nx= x+dx;
+        int ny=y+dy; 
+        if (dungeon.isWalkable(nx, ny) && !dungeon.hasEnemyAt(nx, ny)) { //try and move to player
+            setPosition(nx, ny);
+            return;
+        }
+
+        if (dx!=0 && dy!=0) {
+            nx=x+dx;
+            ny=y;
+            if (dungeon.isWalkable(nx, ny) && !dungeon.hasEnemyAt(nx, ny)) { // if i cant then move diagonal
+                setPosition(nx, ny);
+                return;
+            }
+            nx=x;
+            ny=y+dy;
+            if (dungeon.isWalkable(nx, ny) && !dungeon.hasEnemyAt(nx, ny)) {
+                setPosition(nx, ny);
+                return;
+            }
+        }
+
+        Direction[] dir= {Direction.UP, Direction.DOWN, Direction.LEFT, Direction.RIGHT}; 
+        for (Direction direction : dir) {
+            nx=x+direction.dx;
+            ny=y+direction.dy;
+            if (dungeon.isWalkable(nx, ny) && !dungeon.hasEnemyAt(nx, ny)) {
+                setPosition(nx, ny);
+                return;
+            }
+        }
+    }
+}
 //†"
